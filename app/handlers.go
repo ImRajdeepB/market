@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -12,21 +11,12 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func (a *App) AssetsHandler(w http.ResponseWriter, r *http.Request, resolver *util.Resolver) {
-	// w.Header().Set("Content-Type", "application/json")
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
-	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "*")
-
+func (a *App) AssetsHandler(w http.ResponseWriter, r *http.Request) {
 	assets := []*util.AssetMarketPrice{}
-	for _, asset := range resolver.AssetTickers {
-		buy_market_price, err := resolver.Assets[asset].OrderBook.CalculateMarketPrice(ob.Buy, decimal.NewFromFloat(1))
+	for _, asset := range a.Resolver.AssetTickers {
+		buy_market_price, _ := a.Resolver.Assets[asset].OrderBook.CalculateMarketPrice(ob.Buy, decimal.NewFromFloat(1))
 		bmp := buy_market_price.String()
-		if err != nil {
-			// bmp = "0"
-		}
+
 		assets = append(assets, &util.AssetMarketPrice{
 			Asset:       asset,
 			MarketPrice: bmp,
@@ -36,19 +26,15 @@ func (a *App) AssetsHandler(w http.ResponseWriter, r *http.Request, resolver *ut
 	respondWithJSON(w, http.StatusOK, assets)
 }
 
-func (a *App) DepthHandler(w http.ResponseWriter, r *http.Request, resolver *util.Resolver) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
-
+func (a *App) DepthHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	asset := vars["asset"]
-	if !resolver.Assets[asset].Valid {
+	if !a.Resolver.Assets[asset].Valid {
 		respondWithError(w, http.StatusBadRequest, "invalid ticker")
 		return
 	}
 
-	asks, bids := resolver.Assets[asset].OrderBook.Depth()
+	asks, bids := a.Resolver.Assets[asset].OrderBook.Depth()
 
 	mmp := make(map[string][]*ob.PriceLevel)
 	mmp["asks"] = asks
@@ -57,22 +43,18 @@ func (a *App) DepthHandler(w http.ResponseWriter, r *http.Request, resolver *uti
 	respondWithJSON(w, http.StatusOK, mmp)
 }
 
-func (a *App) CoinHandler(w http.ResponseWriter, r *http.Request, resolver *util.Resolver) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "*")
-
+func (a *App) CoinHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	asset := vars["asset"]
-	if !resolver.Assets[asset].Valid {
+	if !a.Resolver.Assets[asset].Valid {
 		respondWithError(w, http.StatusBadRequest, "invalid ticker")
 		return
 	}
 
-	buy_market_price, err := resolver.Assets[asset].OrderBook.CalculateMarketPrice(ob.Buy, decimal.NewFromFloat(1))
+	buy_market_price, err := a.Resolver.Assets[asset].OrderBook.CalculateMarketPrice(ob.Buy, decimal.NewFromFloat(1))
 	if err != nil {
-		// fmt.Fprintf(w, "{\"error\": \"%s\"}\n", err)
-		// return
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 	v := map[string]map[string]map[string]string{
 		"market_data": {
@@ -85,14 +67,10 @@ func (a *App) CoinHandler(w http.ResponseWriter, r *http.Request, resolver *util
 	respondWithJSON(w, http.StatusOK, v)
 }
 
-func (a *App) BuyHandler(w http.ResponseWriter, r *http.Request, resolver *util.Resolver) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "*")
-
+func (a *App) BuyHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	asset := vars["asset"]
-	if !resolver.Assets[asset].Valid {
+	if !a.Resolver.Assets[asset].Valid {
 		respondWithError(w, http.StatusBadRequest, "invalid ticker")
 		return
 	}
@@ -100,17 +78,13 @@ func (a *App) BuyHandler(w http.ResponseWriter, r *http.Request, resolver *util.
 	price := r.URL.Query()["price"]
 	quantity := r.URL.Query()["quantity"]
 
-	ProcessOrder(w, r, asset, ob.Buy, order_type, quantity, price, resolver)
+	ProcessOrder(w, r, asset, ob.Buy, order_type, quantity, price, &a.Resolver)
 }
 
-func (a *App) SellHandler(w http.ResponseWriter, r *http.Request, resolver *util.Resolver) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "*")
-
+func (a *App) SellHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	asset := vars["asset"]
-	if !resolver.Assets[asset].Valid {
+	if !a.Resolver.Assets[asset].Valid {
 		respondWithError(w, http.StatusBadRequest, "invalid ticker")
 		return
 	}
@@ -118,11 +92,10 @@ func (a *App) SellHandler(w http.ResponseWriter, r *http.Request, resolver *util
 	price := r.URL.Query()["price"]
 	quantity := r.URL.Query()["quantity"]
 
-	ProcessOrder(w, r, asset, ob.Sell, order_type, quantity, price, resolver)
+	ProcessOrder(w, r, asset, ob.Sell, order_type, quantity, price, &a.Resolver)
 }
 
 func ProcessOrder(w http.ResponseWriter, r *http.Request, asset string, side ob.Side, order_type []string, quantity []string, price []string, resolver *util.Resolver) {
-	fmt.Println(asset, side, order_type, quantity, price)
 	if len(order_type) != 1 {
 		respondWithError(w, http.StatusBadRequest, "unknown order type")
 		return
@@ -144,7 +117,17 @@ func ProcessOrder(w http.ResponseWriter, r *http.Request, asset string, side ob.
 				respondWithError(w, http.StatusBadRequest, err.Error())
 				return
 			}
-			fmt.Println("d", done, "p", partial, "p", partialQuantityProcessed)
+
+			respondWithJSON(w, http.StatusCreated, util.LimitOrderResp{
+				Ticker:                   asset,
+				Side:                     side.String(),
+				OrderType:                order_type[0],
+				Quantity:                 quantity[0],
+				Price:                    price[0],
+				Done:                     done,
+				Partial:                  partial,
+				PartialQuantityProcessed: partialQuantityProcessed,
+			})
 		} else {
 			respondWithError(w, http.StatusBadRequest, err.Error())
 			return
@@ -156,7 +139,18 @@ func ProcessOrder(w http.ResponseWriter, r *http.Request, asset string, side ob.
 				respondWithError(w, http.StatusNotFound, err.Error())
 				return
 			}
-			fmt.Println("d", done, "p", partial, "p", partialQuantityProcessed, "q", quantityLeft)
+
+			respondWithJSON(w, http.StatusCreated, util.MarketOrderResp{
+				Ticker:                   asset,
+				Side:                     side.String(),
+				OrderType:                order_type[0],
+				Quantity:                 quantity[0],
+				Price:                    price[0],
+				Done:                     done,
+				Partial:                  partial,
+				PartialQuantityProcessed: partialQuantityProcessed,
+				QuantityLeft:             quantityLeft,
+			})
 		} else {
 			respondWithError(w, http.StatusBadRequest, err.Error())
 			return

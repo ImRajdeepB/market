@@ -1,6 +1,9 @@
 package util
 
-import ob "github.com/muzykantov/orderbook"
+import (
+	ob "github.com/muzykantov/orderbook"
+	"github.com/shopspring/decimal"
+)
 
 // This file will not be regenerated automatically.
 //
@@ -14,6 +17,29 @@ type AssetMarketPrice struct {
 type Pair struct {
 	Valid     bool
 	OrderBook *ob.OrderBook
+}
+
+type LimitOrderResp struct {
+	Ticker                   string
+	Side                     string
+	OrderType                string
+	Quantity                 string
+	Price                    string
+	Done                     []*ob.Order
+	Partial                  *ob.Order
+	PartialQuantityProcessed decimal.Decimal
+}
+
+type MarketOrderResp struct {
+	Ticker                   string
+	Side                     string
+	OrderType                string
+	Quantity                 string
+	Price                    string
+	Done                     []*ob.Order
+	Partial                  *ob.Order
+	PartialQuantityProcessed decimal.Decimal
+	QuantityLeft             decimal.Decimal
 }
 
 type Resolver struct {

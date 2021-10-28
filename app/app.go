@@ -1,7 +1,6 @@
 package app
 
 import (
-	// "fmt"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,8 +8,6 @@ import (
 	"github.com/gorilla/mux"
 	ob "github.com/muzykantov/orderbook"
 	"github.com/rajdeepbh/market/util"
-	// "github.com/rajdeepbh/market/handlers"
-	// "github.com/rajdeepbh/market/util"
 )
 
 type App struct {
@@ -48,25 +45,27 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	// w.Header().Set("Access-Control-Allow-Methods", "*")
 	w.WriteHeader(code)
 	w.Write(response)
 }
 
 func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/coins", func(w http.ResponseWriter, r *http.Request) {
-		a.AssetsHandler(w, r, &a.Resolver)
+		a.AssetsHandler(w, r)
 	}).Methods("GET", http.MethodOptions)
-
 	a.Router.HandleFunc("/coins/{asset}", func(w http.ResponseWriter, r *http.Request) {
-		a.CoinHandler(w, r, &a.Resolver)
+		a.CoinHandler(w, r)
 	}).Methods("GET", http.MethodOptions)
 	a.Router.HandleFunc("/coins/{asset}/depth", func(w http.ResponseWriter, r *http.Request) {
-		a.DepthHandler(w, r, &a.Resolver)
+		a.DepthHandler(w, r)
 	}).Methods("GET", http.MethodOptions)
 	a.Router.HandleFunc("/coins/{asset}/buy", func(w http.ResponseWriter, r *http.Request) {
-		a.BuyHandler(w, r, &a.Resolver)
+		a.BuyHandler(w, r)
 	}).Methods("POST", http.MethodOptions)
 	a.Router.HandleFunc("/coins/{asset}/sell", func(w http.ResponseWriter, r *http.Request) {
-		a.SellHandler(w, r, &a.Resolver)
+		a.SellHandler(w, r)
 	}).Methods("POST", http.MethodOptions)
 }
