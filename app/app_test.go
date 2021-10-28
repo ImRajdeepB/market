@@ -1,14 +1,18 @@
-package handlers_test
+package app_test
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/rajdeepbh/market/app"
 )
+
+var a *app.App
 
 func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
-	// a.Router.ServeHTTP(rr, req)
+	a.Router.ServeHTTP(rr, req)
 
 	return rr
 }
@@ -25,4 +29,8 @@ func TestAssetsHandler(t *testing.T) {
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusOK, response.Code)
+
+	if body := response.Body.String(); body != "[]" {
+		t.Errorf("Expected an empty array. Got %s", body)
+	}
 }
