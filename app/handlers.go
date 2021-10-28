@@ -30,7 +30,7 @@ func (a *App) DepthHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	asset := vars["asset"]
 	if !a.Resolver.Assets[asset].Valid {
-		respondWithError(w, http.StatusBadRequest, "invalid ticker")
+		respondWithError(w, http.StatusNotFound, "invalid ticker")
 		return
 	}
 
@@ -47,7 +47,7 @@ func (a *App) CoinHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	asset := vars["asset"]
 	if !a.Resolver.Assets[asset].Valid {
-		respondWithError(w, http.StatusBadRequest, "invalid ticker")
+		respondWithError(w, http.StatusNotFound, "invalid ticker")
 		return
 	}
 
@@ -71,7 +71,7 @@ func (a *App) BuyHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	asset := vars["asset"]
 	if !a.Resolver.Assets[asset].Valid {
-		respondWithError(w, http.StatusBadRequest, "invalid ticker")
+		respondWithError(w, http.StatusNotFound, "invalid ticker")
 		return
 	}
 	order_type := r.URL.Query()["type"]
@@ -85,7 +85,7 @@ func (a *App) SellHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	asset := vars["asset"]
 	if !a.Resolver.Assets[asset].Valid {
-		respondWithError(w, http.StatusBadRequest, "invalid ticker")
+		respondWithError(w, http.StatusNotFound, "invalid ticker")
 		return
 	}
 	order_type := r.URL.Query()["type"]
